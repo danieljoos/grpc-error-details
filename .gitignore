@@ -1,0 +1,8 @@
+.idea/
+.vscode/
+build/
+bin/
+obj/
+generated/
+target/
+*.iml
