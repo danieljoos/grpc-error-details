@@ -36,7 +36,7 @@ namespace Example
             try
             {
                 var response = client.SaySomething(new SaySomethingRequest { Phrase = "Foo" });
-                Console.WriteLine($"Server responded: { response.Echo }");
+                Console.WriteLine($"ok: { response.Echo }");
             }
             catch (RpcException ex)
             {
