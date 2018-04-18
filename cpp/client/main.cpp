@@ -1,5 +1,6 @@
 #include <iostream>
 #include <memory>
+#include <optional>
 
 #include <grpc++/grpc++.h>
 #include <grpc++/support/error_details.h>
@@ -10,6 +11,24 @@
 
 // This is the compiled protobuf header of `google::rpc::Status`.
 #include "status.pb.h"
+
+/** 
+ * Extract the error details from the trailers into the `status` object.
+ * Then iterate through the repeated `any` field `details` and look for the first
+ * value that can be unpacked into our custom `ErrorDetails` type.
+ */
+std::optional<example::ErrorDetails> GetErrorDetails(const grpc::Status& status) {
+    google::rpc::Status trailerStatus;
+    if (grpc::ExtractErrorDetails(status, &trailerStatus).ok()) {
+        example::ErrorDetails result;
+        for (const auto& entry : trailerStatus.details()) {
+            if (entry.UnpackTo(&result)) {
+                return result;
+            }
+        }
+    }
+    return std::nullopt;
+}
 
 class ExampleHelloClient {
 public:
@@ -24,20 +43,15 @@ public:
         // Send the request
         example::SaySomethingResponse response;
         grpc::ClientContext context;
-        grpc::Status result = m_stub->SaySomething(&context, request, &response);
+        grpc::Status status = m_stub->SaySomething(&context, request, &response);
 
-        // Extract the error details from the trailers into the `status` object.
-        // Then iterate through the repeated `any` field and look for the first
-        // value that can be unpacked into our custom `ErrorDetails` type.
-        google::rpc::Status status;
-        if (grpc::ExtractErrorDetails(result, &status).ok()) {
-            for (const auto& entry : status.details()) {
-                example::ErrorDetails details;
-                if (entry.UnpackTo(&details)) {
-                    std::cout << "error-details: " << details.why() << std::endl;
-                    break;
-                }
-            }
+        // Error handling
+        if (status.ok()) {
+            std::cout << "ok: " << response.echo() << std::endl;
+        } else if (auto details = GetErrorDetails(status)) {
+            std::cout << "error-details: " << details->why() << std::endl;
+        } else {
+            std::cerr << "error: " << status.error_message() << std::endl;
         }
     }
 
