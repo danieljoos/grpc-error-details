@@ -6,7 +6,7 @@ namespace Example
 {
     public static class RpcExceptionExtensions
     {
-        public static Google.Rpc.Status ExtractErrorDetails(this RpcException exception)
+        public static Google.Rpc.Status GoogleRpcStatus(this RpcException exception)
         {
             return exception.Trailers
                 .Where(x => x.Key.Equals("grpc-status-details-bin"))
@@ -20,7 +20,7 @@ namespace Example
         {
             T result = default(T);
             exception
-                .ExtractErrorDetails()?.Details
+                .GoogleRpcStatus()?.Details
                 .FirstOrDefault()
                 .TryUnpack<T>(out result);
             return result;
